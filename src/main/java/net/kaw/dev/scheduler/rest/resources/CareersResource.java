@@ -22,18 +22,12 @@ package net.kaw.dev.scheduler.rest.resources;
 
 import jakarta.websocket.server.PathParam;
 import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.container.AsyncResponse;
 import jakarta.ws.rs.container.Suspended;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.UriInfo;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import net.kaw.dev.scheduler.data.Career;
 import net.kaw.dev.scheduler.rest.Response;
 import net.kaw.dev.scheduler.sql.SQLControl;
 
@@ -41,9 +35,6 @@ import net.kaw.dev.scheduler.sql.SQLControl;
 public class CareersResource {
 
     private final ExecutorService executorService = Executors.newCachedThreadPool();
-
-    @Context
-    private UriInfo context;
 
     public CareersResource() {
     }
@@ -56,36 +47,11 @@ public class CareersResource {
         });
     }
 
-    @GET
-    @Path(value = "/postDummy")
-    @Produces(MediaType.APPLICATION_JSON)
-    public void postDummyCareer(@Suspended final AsyncResponse asyncResponse, final Career career) {
-        executorService.submit(() -> {
-            asyncResponse.resume(doPostDummyCareer());
-        });
-    }
-
     private Response doDeleteCareer(String id) {
         Response response = new Response();
 
         try {
             SQLControl.Careers.delete(id);
-
-            response.setStatus(true);
-            response.setMessage("Success");
-        } catch (SQLException ex) {
-            response.setStatus(false);
-            response.setMessage("Something went wrong.");
-        }
-
-        return response;
-    }
-
-    private Response doPostDummyCareer() {
-        Response response = new Response();
-
-        try {
-            SQLControl.Careers.insert(new Career("123456", "IEC1", "EAC2", 0, 1));
 
             response.setStatus(true);
             response.setMessage("Success");

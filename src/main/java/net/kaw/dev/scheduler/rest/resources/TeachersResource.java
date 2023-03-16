@@ -21,6 +21,7 @@
 package net.kaw.dev.scheduler.rest.resources;
 
 import jakarta.websocket.server.PathParam;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -28,9 +29,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.container.AsyncResponse;
 import jakarta.ws.rs.container.Suspended;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.UriInfo;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,16 +37,15 @@ import net.kaw.dev.scheduler.data.Comment;
 import net.kaw.dev.scheduler.data.HalfHour;
 import net.kaw.dev.scheduler.data.ScheduleMap;
 import net.kaw.dev.scheduler.data.Teacher;
+import net.kaw.dev.scheduler.data.factories.MappableFactory;
 import net.kaw.dev.scheduler.rest.Response;
 import net.kaw.dev.scheduler.sql.SQLControl;
+import net.kaw.dev.scheduler.utils.JSONUtils;
 
 @Path("teachers")
 public class TeachersResource {
 
     private final ExecutorService executorService = Executors.newCachedThreadPool();
-
-    @Context
-    private UriInfo context;
 
     public TeachersResource() {
     }
@@ -55,9 +53,10 @@ public class TeachersResource {
     @POST
     @Path(value = "/post")
     @Produces(MediaType.APPLICATION_JSON)
-    public void postDummyCareer(@Suspended final AsyncResponse asyncResponse, final Teacher teacher) {
+    @Consumes(MediaType.TEXT_PLAIN)
+    public void postDummyTeacher(@Suspended final AsyncResponse asyncResponse, final String jsonString) {
         executorService.submit(() -> {
-            asyncResponse.resume(doPostTeacher(teacher));
+            asyncResponse.resume(doPostTeacher(jsonString));
         });
     }
 
@@ -70,26 +69,19 @@ public class TeachersResource {
     }
 
     @GET
-    @Path(value = "/postDummy")
-    @Produces(MediaType.APPLICATION_JSON)
-    public void postDummyCareer(@Suspended final AsyncResponse asyncResponse) {
-        executorService.submit(() -> {
-            asyncResponse.resume(doPostDummyTeacher());
-        });
-    }
-
-    @DELETE
     @Path(value = "/deleteDummy")
-    public void deleteDummyTeacher(@Suspended final AsyncResponse asyncResponse, @PathParam(value = "id") final String id) {
+    public void deleteDummyTeacher(@Suspended final AsyncResponse asyncResponse) {
         executorService.submit(() -> {
             asyncResponse.resume(doDeleteDummyTeacher());
         });
     }
 
-    private Response doPostTeacher(Teacher teacher) {
+    private Response doPostTeacher(String jsonString) {
         Response response = new Response();
 
         try {
+            Teacher teacher = (Teacher) MappableFactory.build(MappableFactory.MappableType.TEACHER, JSONUtils.jsonToMap(jsonString));
+
             ScheduleMap scheduleMap = teacher.getScheduleMap();
 
             SQLControl.Cycles.insert(scheduleMap.getCycle());
@@ -138,12 +130,6 @@ public class TeachersResource {
         }
 
         return response;
-    }
-
-    private Response doPostDummyTeacher() {
-        Teacher teacher = new Teacher("123456", "P", 123, "AAA", "BBB");
-
-        return doPostTeacher(teacher);
     }
 
     private Response doDeleteDummyTeacher() {

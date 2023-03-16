@@ -37,6 +37,7 @@ public class ApplicationConfig extends Application {
 
     private void addRestResourceClasses(Set<Class<?>> resources) {
         resources.add(net.kaw.dev.scheduler.rest.resources.CareersResource.class);
+        resources.add(net.kaw.dev.scheduler.rest.resources.TeachersResource.class);
     }
 
 }

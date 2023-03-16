@@ -23,7 +23,6 @@ package net.kaw.dev.scheduler.rest.resources;
 import jakarta.websocket.server.PathParam;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -68,14 +67,6 @@ public class TeachersResource {
         });
     }
 
-    @GET
-    @Path(value = "/deleteDummy")
-    public void deleteDummyTeacher(@Suspended final AsyncResponse asyncResponse) {
-        executorService.submit(() -> {
-            asyncResponse.resume(doDeleteDummyTeacher());
-        });
-    }
-
     private Response doPostTeacher(String jsonString) {
         Response response = new Response();
 
@@ -85,6 +76,8 @@ public class TeachersResource {
             ScheduleMap scheduleMap = teacher.getScheduleMap();
 
             SQLControl.Cycles.insert(scheduleMap.getCycle());
+
+            SQLControl.Teachers.insert(teacher);
 
             SQLControl.ScheduleMaps.insert(teacher.getScheduleMap(), teacher);
 
@@ -103,8 +96,6 @@ public class TeachersResource {
                     }
                 }
             }
-
-            SQLControl.Teachers.insert(teacher);
 
             response.setStatus(true);
             response.setMessage("Success");
@@ -130,10 +121,6 @@ public class TeachersResource {
         }
 
         return response;
-    }
-
-    private Response doDeleteDummyTeacher() {
-        return doDeleteTeacher("123456");
     }
 
 }

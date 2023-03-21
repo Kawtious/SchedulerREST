@@ -20,19 +20,20 @@
  */
 package net.kaw.dev.scheduler.rest.resources;
 
-import jakarta.websocket.server.PathParam;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.container.AsyncResponse;
 import jakarta.ws.rs.container.Suspended;
 import jakarta.ws.rs.core.MediaType;
 import java.sql.SQLException;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import net.kaw.dev.scheduler.data.Comment;
 import net.kaw.dev.scheduler.data.HalfHour;
 import net.kaw.dev.scheduler.data.ScheduleMap;
 import net.kaw.dev.scheduler.data.Teacher;
@@ -49,11 +50,18 @@ public class TeachersResource {
     public TeachersResource() {
     }
 
+    @GET
+    @Path(value = "/get/{id}")
+    public void getTeacher(@Suspended final AsyncResponse asyncResponse, @PathParam(value = "id") final String id) {
+        executorService.submit(() -> {
+            asyncResponse.resume(doGetTeacher(id));
+        });
+    }
+
     @POST
     @Path(value = "/post")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.TEXT_PLAIN)
-    public void postDummyTeacher(@Suspended final AsyncResponse asyncResponse, final String jsonString) {
+    public void postTeacher(@Suspended final AsyncResponse asyncResponse, final String jsonString) {
         executorService.submit(() -> {
             asyncResponse.resume(doPostTeacher(jsonString));
         });
@@ -65,6 +73,15 @@ public class TeachersResource {
         executorService.submit(() -> {
             asyncResponse.resume(doDeleteTeacher(id));
         });
+    }
+
+    private Teacher doGetTeacher(String id) {
+        try {
+            return SQLControl.Teachers.select(id);
+        } catch (SQLException ex) {
+        }
+
+        return null;
     }
 
     private Response doPostTeacher(String jsonString) {
@@ -86,14 +103,6 @@ public class TeachersResource {
                     HalfHour halfHour = scheduleMap.getMapValue(day, hour);
 
                     SQLControl.HalfHours.insert(halfHour, scheduleMap, day, hour);
-                }
-            }
-
-            if (!scheduleMap.getComments().isEmpty()) {
-                for (Comment comment : scheduleMap.getComments()) {
-                    for (HalfHour halfHour : comment.getHalfHours()) {
-                        SQLControl.Comments.insert(comment, halfHour);
-                    }
                 }
             }
 

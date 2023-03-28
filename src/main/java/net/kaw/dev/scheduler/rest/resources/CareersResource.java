@@ -28,8 +28,8 @@ import jakarta.ws.rs.container.Suspended;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import net.kaw.dev.scheduler.persistence.sql.SQLControl;
 import net.kaw.dev.scheduler.rest.Response;
-import net.kaw.dev.scheduler.sql.SQLControl;
 
 @Path("careers")
 public class CareersResource {

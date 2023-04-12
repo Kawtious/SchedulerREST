@@ -30,6 +30,7 @@ import jakarta.ws.rs.container.AsyncResponse;
 import jakarta.ws.rs.container.Suspended;
 import jakarta.ws.rs.core.MediaType;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import net.kaw.dev.scheduler.data.HalfHour;
@@ -88,20 +89,13 @@ public class TeachersResource {
         try {
             Teacher teacher = (Teacher) MappableFactory.build(MappableFactory.MappableType.TEACHER, JSONUtils.jsonToMap(jsonString));
 
-            ScheduleMap scheduleMap = teacher.getScheduleMap();
-
-            SQLControl.Cycles.insert(scheduleMap.getCycle());
-
             SQLControl.Teachers.insert(teacher);
 
-            SQLControl.ScheduleMaps.insert(teacher.getScheduleMap(), teacher);
+            List<ScheduleMap> scheduleMaps = teacher.getScheduleMaps();
 
-            for (int day = 0; day < ScheduleMap.DAYS; day++) {
-                for (int hour = 0; hour < ScheduleMap.HALFHOURS; hour++) {
-                    HalfHour halfHour = scheduleMap.getMapValue(day, hour);
-
-                    SQLControl.HalfHours.insert(halfHour, scheduleMap, day, hour);
-                }
+            for (ScheduleMap scheduleMap : scheduleMaps) {
+                SQLControl.ScheduleMaps.insert(scheduleMap, teacher);
+                SQLControl.HalfHours.insertFromScheduleMap(scheduleMap);
             }
 
             response.setStatus(true);

@@ -30,6 +30,8 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.sql.SQLException;
+import java.util.Date;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.kaw.dev.scheduler.data.Cycle;
@@ -51,6 +53,20 @@ public class CyclesResource {
         return doGetCycle(id);
     }
 
+    @GET
+    @Path(value = "/current")
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response getCurrentCycle() {
+        return doGetCurrentCycle();
+    }
+
+    @GET
+    @Path(value = "/dummy")
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response getDummyCycle() {
+        return doGetDummyCycle();
+    }
+
     @POST
     @Path(value = "/post")
     @Consumes(MediaType.TEXT_PLAIN)
@@ -67,6 +83,35 @@ public class CyclesResource {
     private Response doGetCycle(String id) {
         try {
             return ResponseManager.createResponse(200, JSONUtils.mapToJSON(SQLControl.Cycles.select(id).toMap()));
+        } catch (SQLException | InvalidDataException ex) {
+            Logger.getLogger(CyclesResource.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return ResponseManager.createResponse(200, "");
+    }
+
+    private Response doGetDummyCycle() {
+        String dummyId = "dummy_cycle_id";
+        return doGetCycle(dummyId);
+    }
+
+    private Response doGetCurrentCycle() {
+        try {
+            List<Cycle> cycles = SQLControl.Cycles.select();
+
+            Date date = new Date();
+
+            long timeMilli = date.getTime();
+
+            Cycle currentCycle = cycles.get(0);
+
+            for (Cycle cycle : cycles) {
+                if (timeMilli >= cycle.getStart() && timeMilli <= cycle.getEnd()) {
+                    currentCycle = cycle;
+                }
+            }
+
+            return ResponseManager.createResponse(200, JSONUtils.mapToJSON(currentCycle.toMap()));
         } catch (SQLException | InvalidDataException ex) {
             Logger.getLogger(CyclesResource.class.getName()).log(Level.SEVERE, null, ex);
         }

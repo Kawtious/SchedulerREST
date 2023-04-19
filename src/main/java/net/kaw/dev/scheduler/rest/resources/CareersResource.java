@@ -23,44 +23,34 @@ package net.kaw.dev.scheduler.rest.resources;
 import jakarta.websocket.server.PathParam;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.container.AsyncResponse;
-import jakarta.ws.rs.container.Suspended;
+import jakarta.ws.rs.core.Response;
 import java.sql.SQLException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import net.kaw.dev.scheduler.persistence.sql.SQLControl;
-import net.kaw.dev.scheduler.rest.Response;
 
 @Path("careers")
 public class CareersResource {
-
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     public CareersResource() {
     }
 
     @DELETE
     @Path(value = "/delete/{id}")
-    public void deleteCareer(@Suspended final AsyncResponse asyncResponse, @PathParam(value = "id") final String id) {
-        executorService.submit(() -> {
-            asyncResponse.resume(doDeleteCareer(id));
-        });
+    public Response deleteCareer(@PathParam(value = "id") final String id) {
+        return doDeleteCareer(id);
     }
 
     private Response doDeleteCareer(String id) {
-        Response response = new Response();
-
         try {
             SQLControl.Careers.delete(id);
 
-            response.setStatus(true);
-            response.setMessage("Success");
+            return ResponseManager.createResponse(200, true);
         } catch (SQLException ex) {
-            response.setStatus(false);
-            response.setMessage("Something went wrong.");
+            Logger.getLogger(CareersResource.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return response;
+        return ResponseManager.createResponse(200, false);
     }
 
 }

@@ -26,66 +26,63 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.container.AsyncResponse;
-import jakarta.ws.rs.container.Suspended;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import net.kaw.dev.scheduler.data.HalfHour;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import net.kaw.dev.scheduler.data.ScheduleMap;
 import net.kaw.dev.scheduler.data.Teacher;
 import net.kaw.dev.scheduler.data.factories.MappableFactory;
+import net.kaw.dev.scheduler.exceptions.InvalidDataException;
 import net.kaw.dev.scheduler.persistence.sql.SQLControl;
-import net.kaw.dev.scheduler.rest.Response;
 import net.kaw.dev.scheduler.utils.JSONUtils;
 
 @Path("teachers")
 public class TeachersResource {
-
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     public TeachersResource() {
     }
 
     @GET
     @Path(value = "/get/{id}")
-    public void getTeacher(@Suspended final AsyncResponse asyncResponse, @PathParam(value = "id") final String id) {
-        executorService.submit(() -> {
-            asyncResponse.resume(doGetTeacher(id));
-        });
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response getTeacher(@PathParam(value = "id") final String id) {
+        return doGetTeacher(id);
     }
 
     @POST
     @Path(value = "/post")
     @Consumes(MediaType.TEXT_PLAIN)
-    public void postTeacher(@Suspended final AsyncResponse asyncResponse, final String jsonString) {
-        executorService.submit(() -> {
-            asyncResponse.resume(doPostTeacher(jsonString));
-        });
+    public Response postTeacher(final String jsonString) {
+        return doPostTeacher(jsonString);
     }
 
     @DELETE
     @Path(value = "/delete/{id}")
-    public void deleteTeacher(@Suspended final AsyncResponse asyncResponse, @PathParam(value = "id") final String id) {
-        executorService.submit(() -> {
-            asyncResponse.resume(doDeleteTeacher(id));
-        });
+    public Response deleteTeacher(@PathParam(value = "id") final String id) {
+        return doDeleteTeacher(id);
     }
 
-    private Teacher doGetTeacher(String id) {
+    private Response doGetTeacher(String id) {
         try {
-            return SQLControl.Teachers.select(id);
-        } catch (SQLException ex) {
+            Teacher teacher = SQLControl.Teachers.select(id);
+
+            if (teacher == null) {
+                return ResponseManager.createResponse(200, "");
+            }
+
+            return ResponseManager.createResponse(200, JSONUtils.mapToJSON(teacher.toMap()));
+        } catch (SQLException | InvalidDataException ex) {
+            Logger.getLogger(TeachersResource.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return null;
+        return ResponseManager.createResponse(200, "");
     }
 
     private Response doPostTeacher(String jsonString) {
-        Response response = new Response();
-
         try {
             Teacher teacher = (Teacher) MappableFactory.build(MappableFactory.MappableType.TEACHER, JSONUtils.jsonToMap(jsonString));
 
@@ -98,30 +95,24 @@ public class TeachersResource {
                 SQLControl.HalfHours.insertFromScheduleMap(scheduleMap);
             }
 
-            response.setStatus(true);
-            response.setMessage("Success");
-        } catch (SQLException ex) {
-            response.setStatus(false);
-            response.setMessage("Something went wrong.");
+            return ResponseManager.createResponse(200, true);
+        } catch (SQLException | InvalidDataException ex) {
+            Logger.getLogger(TeachersResource.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return response;
+        return ResponseManager.createResponse(200, false);
     }
 
     private Response doDeleteTeacher(String id) {
-        Response response = new Response();
-
         try {
             SQLControl.Teachers.delete(id);
 
-            response.setStatus(true);
-            response.setMessage("Success");
+            return ResponseManager.createResponse(200, true);
         } catch (SQLException ex) {
-            response.setStatus(false);
-            response.setMessage("Something went wrong.");
+            Logger.getLogger(TeachersResource.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return response;
+        return ResponseManager.createResponse(200, false);
     }
 
 }

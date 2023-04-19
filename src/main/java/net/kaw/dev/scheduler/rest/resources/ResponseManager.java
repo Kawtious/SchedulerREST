@@ -18,30 +18,22 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package net.kaw.dev.scheduler.rest;
+package net.kaw.dev.scheduler.rest.resources;
 
-import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.ws.rs.core.Response;
 
-@XmlRootElement
-public class Response {
+public class ResponseManager {
 
-    private boolean status;
-    private String message;
-
-    public boolean isStatus() {
-        return status;
+    public static Response createResponse(int status, Object o) {
+        return Response
+                .status(status)
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Credentials", "true")
+                .header("Access-Control-Allow-Headers",
+                        "origin, content-type, accept, authorization")
+                .header("Access-Control-Allow-Methods",
+                        "GET, POST, PUT, DELETE, OPTIONS, HEAD")
+                .entity(o)
+                .build();
     }
-
-    public void setStatus(boolean status) {
-        this.status = status;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
 }

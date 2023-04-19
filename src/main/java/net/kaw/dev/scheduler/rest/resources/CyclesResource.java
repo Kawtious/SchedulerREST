@@ -26,92 +26,78 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.container.AsyncResponse;
-import jakarta.ws.rs.container.Suspended;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.sql.SQLException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import net.kaw.dev.scheduler.data.Cycle;
 import net.kaw.dev.scheduler.data.factories.MappableFactory;
+import net.kaw.dev.scheduler.exceptions.InvalidDataException;
 import net.kaw.dev.scheduler.persistence.sql.SQLControl;
-import net.kaw.dev.scheduler.rest.Response;
 import net.kaw.dev.scheduler.utils.JSONUtils;
 
 @Path("cycles")
 public class CyclesResource {
-
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     public CyclesResource() {
     }
 
     @GET
     @Path(value = "/get/{id}")
-    public void getCycle(@Suspended final AsyncResponse asyncResponse, @PathParam(value = "id") final String id) {
-        executorService.submit(() -> {
-            asyncResponse.resume(doGetCycle(id));
-        });
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response getCycle(@PathParam(value = "id") final String id) {
+        return doGetCycle(id);
     }
 
     @POST
     @Path(value = "/post")
     @Consumes(MediaType.TEXT_PLAIN)
-    public void postCycle(@Suspended final AsyncResponse asyncResponse, final String jsonString) {
-        executorService.submit(() -> {
-            asyncResponse.resume(doPostCycle(jsonString));
-        });
+    public Response postCycle(final String jsonString) {
+        return doPostCycle(jsonString);
     }
 
     @DELETE
     @Path(value = "/delete/{id}")
-    public void deleteCycle(@Suspended final AsyncResponse asyncResponse, @PathParam(value = "id") final String id) {
-        executorService.submit(() -> {
-            asyncResponse.resume(doDeleteCycle(id));
-        });
+    public Response deleteCycle(@PathParam(value = "id") final String id) {
+        return doDeleteCycle(id);
     }
 
-    private Cycle doGetCycle(String id) {
+    private Response doGetCycle(String id) {
         try {
-            return SQLControl.Cycles.select(id);
-        } catch (SQLException ex) {
+            return ResponseManager.createResponse(200, JSONUtils.mapToJSON(SQLControl.Cycles.select(id).toMap()));
+        } catch (SQLException | InvalidDataException ex) {
+            Logger.getLogger(CyclesResource.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return null;
+        return ResponseManager.createResponse(200, "");
     }
 
     private Response doPostCycle(String jsonString) {
-        Response response = new Response();
-
         try {
             Cycle cycle = (Cycle) MappableFactory.build(MappableFactory.MappableType.CYCLE, JSONUtils.jsonToMap(jsonString));
 
             SQLControl.Cycles.insert(cycle);
 
-            response.setStatus(true);
-            response.setMessage("Success");
-        } catch (SQLException ex) {
-            response.setStatus(false);
-            response.setMessage("Something went wrong.");
+            return ResponseManager.createResponse(200, true);
+        } catch (SQLException | InvalidDataException ex) {
+            Logger.getLogger(CyclesResource.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return response;
+        return ResponseManager.createResponse(200, false);
     }
 
     private Response doDeleteCycle(String id) {
-        Response response = new Response();
-
         try {
             SQLControl.Cycles.delete(id);
 
-            response.setStatus(true);
-            response.setMessage("Success");
+            return ResponseManager.createResponse(200, true);
         } catch (SQLException ex) {
-            response.setStatus(false);
-            response.setMessage("Something went wrong.");
+            Logger.getLogger(CyclesResource.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return response;
+        return ResponseManager.createResponse(200, false);
     }
 
 }

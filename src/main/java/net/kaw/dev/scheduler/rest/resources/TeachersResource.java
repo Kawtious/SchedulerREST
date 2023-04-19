@@ -53,6 +53,13 @@ public class TeachersResource {
         return doGetTeacher(id);
     }
 
+    @GET
+    @Path(value = "/dummy")
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response getDummyTeacher() {
+        return doGetDummyTeacher();
+    }
+
     @POST
     @Path(value = "/post")
     @Consumes(MediaType.TEXT_PLAIN)
@@ -80,6 +87,11 @@ public class TeachersResource {
         }
 
         return ResponseManager.createResponse(200, "");
+    }
+
+    private Response doGetDummyTeacher() {
+        String dummyId = "dummy_teacher_id";
+        return doGetTeacher(dummyId);
     }
 
     private Response doPostTeacher(String jsonString) {

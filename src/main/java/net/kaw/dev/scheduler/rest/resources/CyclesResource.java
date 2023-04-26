@@ -31,7 +31,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.kaw.dev.scheduler.data.Cycle;
@@ -44,6 +46,13 @@ import net.kaw.dev.scheduler.utils.JSONUtils;
 public class CyclesResource {
 
     public CyclesResource() {
+    }
+
+    @GET
+    @Path(value = "/get")
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response getCycles() {
+        return doGetCycles();
     }
 
     @GET
@@ -93,6 +102,25 @@ public class CyclesResource {
     private Response doGetDummyCycle() {
         String dummyId = "dummy_cycle_id";
         return doGetCycle(dummyId);
+    }
+
+    private Response doGetCycles() {
+        try {
+            List<Cycle> cycles = SQLControl.Cycles.select();
+
+            Map<String, Object> cyclesMap = new HashMap<>();
+
+            // Todo: Order by period
+            for (Cycle cycle : cycles) {
+                cyclesMap.put(cycle.getId(), cycle.toMap());
+            }
+
+            return ResponseManager.createResponse(200, JSONUtils.mapToJSON(cyclesMap));
+        } catch (SQLException | InvalidDataException ex) {
+            Logger.getLogger(CyclesResource.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return ResponseManager.createResponse(200, "");
     }
 
     private Response doGetCurrentCycle() {

@@ -18,22 +18,23 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package net.kaw.dev.scheduler.rest.resources;
+package net.kaw.dev.scheduler.rest.resources.utils;
 
-import jakarta.ws.rs.core.Response;
+import java.util.Map;
+import net.kaw.dev.scheduler.utils.JSONUtils;
 
-public class ResponseManager {
+public class RequestUtils {
 
-    public static Response createResponse(int status, Object o) {
-        return Response
-                .status(status)
-                .header("Access-Control-Allow-Origin", "*")
-                .header("Access-Control-Allow-Credentials", "true")
-                .header("Access-Control-Allow-Headers",
-                        "origin, content-type, accept, authorization")
-                .header("Access-Control-Allow-Methods",
-                        "GET, POST, PUT, DELETE, OPTIONS, HEAD")
-                .entity(o)
-                .build();
+    public static Map<String, Object> getMap(String jsonString) {
+        if (jsonString.isEmpty()) {
+            return null;
+        }
+
+        if (!JSONUtils.isJSONValid(jsonString)) {
+            return null;
+        }
+
+        return JSONUtils.jsonToMap(jsonString);
     }
+
 }

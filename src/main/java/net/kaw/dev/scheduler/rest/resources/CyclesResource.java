@@ -21,11 +21,8 @@
 package net.kaw.dev.scheduler.rest.resources;
 
 import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -40,6 +37,9 @@ import net.kaw.dev.scheduler.data.Cycle;
 import net.kaw.dev.scheduler.data.factories.MappableFactory;
 import net.kaw.dev.scheduler.exceptions.InvalidDataException;
 import net.kaw.dev.scheduler.persistence.sql.SQLControl;
+import net.kaw.dev.scheduler.persistence.sql.auth.AuthManager;
+import net.kaw.dev.scheduler.rest.resources.utils.RequestUtils;
+import net.kaw.dev.scheduler.rest.resources.utils.ResponseUtils;
 import net.kaw.dev.scheduler.utils.JSONUtils;
 
 @Path("cycles")
@@ -48,32 +48,20 @@ public class CyclesResource {
     public CyclesResource() {
     }
 
-    @GET
+    @POST
     @Path(value = "/get")
     @Produces(MediaType.TEXT_PLAIN)
-    public Response getCycles() {
-        return doGetCycles();
+    @Consumes(MediaType.TEXT_PLAIN)
+    public Response getCycles(final String jsonString) {
+        return doGetCycle(jsonString);
     }
 
-    @GET
-    @Path(value = "/get/{id}")
-    @Produces(MediaType.TEXT_PLAIN)
-    public Response getCycle(@PathParam(value = "id") final String id) {
-        return doGetCycle(id);
-    }
-
-    @GET
+    @POST
     @Path(value = "/current")
     @Produces(MediaType.TEXT_PLAIN)
-    public Response getCurrentCycle() {
-        return doGetCurrentCycle();
-    }
-
-    @GET
-    @Path(value = "/dummy")
-    @Produces(MediaType.TEXT_PLAIN)
-    public Response getDummyCycle() {
-        return doGetDummyCycle();
+    @Consumes(MediaType.TEXT_PLAIN)
+    public Response getCurrentCycle(final String jsonString) {
+        return doGetCurrentCycle(jsonString);
     }
 
     @POST
@@ -83,25 +71,43 @@ public class CyclesResource {
         return doPostCycle(jsonString);
     }
 
-    @DELETE
-    @Path(value = "/delete/{id}")
-    public Response deleteCycle(@PathParam(value = "id") final String id) {
-        return doDeleteCycle(id);
+    @POST
+    @Path(value = "/delete")
+    @Consumes(MediaType.TEXT_PLAIN)
+    public Response deleteCycle(final String jsonString) {
+        return doDeleteCycle(jsonString);
     }
 
-    private Response doGetCycle(String id) {
+    private Response doGetCycle(String jsonString) {
         try {
-            return ResponseManager.createResponse(200, JSONUtils.mapToJSON(SQLControl.Cycles.select(id).toMap()));
+            if (!AuthManager.authenticate(jsonString, 0)) {
+                return ResponseUtils.createResponse(ResponseUtils.FORBIDDEN);
+            }
+
+            Map<String, Object> map = RequestUtils.getMap(jsonString);
+
+            if (map == null) {
+                return doGetCycles();
+            }
+
+            if (!map.containsKey(Cycle.ID_KEY)) {
+                return doGetCycles();
+            }
+
+            String id = (String) map.get(Cycle.ID_KEY);
+
+            Cycle cycle = SQLControl.Cycles.select(id);
+
+            if (cycle == null) {
+                return ResponseUtils.createResponse(ResponseUtils.INTERNAL_SERVER_ERROR);
+            }
+
+            return ResponseUtils.createResponse(ResponseUtils.OK, JSONUtils.mapToJSON(cycle.toMap()));
         } catch (SQLException | InvalidDataException ex) {
             Logger.getLogger(CyclesResource.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return ResponseManager.createResponse(200, "");
-    }
-
-    private Response doGetDummyCycle() {
-        String dummyId = "dummy_cycle_id";
-        return doGetCycle(dummyId);
+        return ResponseUtils.createResponse(ResponseUtils.INTERNAL_SERVER_ERROR);
     }
 
     private Response doGetCycles() {
@@ -115,16 +121,20 @@ public class CyclesResource {
                 cyclesMap.put(cycle.getId(), cycle.toMap());
             }
 
-            return ResponseManager.createResponse(200, JSONUtils.mapToJSON(cyclesMap));
+            return ResponseUtils.createResponse(ResponseUtils.OK, JSONUtils.mapToJSON(cyclesMap));
         } catch (SQLException | InvalidDataException ex) {
             Logger.getLogger(CyclesResource.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return ResponseManager.createResponse(200, "");
+        return ResponseUtils.createResponse(ResponseUtils.INTERNAL_SERVER_ERROR);
     }
 
-    private Response doGetCurrentCycle() {
+    private Response doGetCurrentCycle(String jsonString) {
         try {
+            if (!AuthManager.authenticate(jsonString, 0)) {
+                return ResponseUtils.createResponse(ResponseUtils.FORBIDDEN);
+            }
+
             List<Cycle> cycles = SQLControl.Cycles.select();
 
             Date date = new Date();
@@ -139,38 +149,58 @@ public class CyclesResource {
                 }
             }
 
-            return ResponseManager.createResponse(200, JSONUtils.mapToJSON(currentCycle.toMap()));
+            return ResponseUtils.createResponse(ResponseUtils.OK, JSONUtils.mapToJSON(currentCycle.toMap()));
         } catch (SQLException | InvalidDataException ex) {
             Logger.getLogger(CyclesResource.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return ResponseManager.createResponse(200, "");
+        return ResponseUtils.createResponse(ResponseUtils.INTERNAL_SERVER_ERROR);
     }
 
     private Response doPostCycle(String jsonString) {
         try {
+            if (!AuthManager.authenticate(jsonString, 1)) {
+                return ResponseUtils.createResponse(ResponseUtils.FORBIDDEN);
+            }
+
             Cycle cycle = (Cycle) MappableFactory.build(MappableFactory.MappableType.CYCLE, JSONUtils.jsonToMap(jsonString));
 
             SQLControl.Cycles.insert(cycle);
 
-            return ResponseManager.createResponse(200, true);
+            return ResponseUtils.createResponse(ResponseUtils.OK);
         } catch (SQLException | InvalidDataException ex) {
             Logger.getLogger(CyclesResource.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return ResponseManager.createResponse(200, false);
+        return ResponseUtils.createResponse(ResponseUtils.INTERNAL_SERVER_ERROR);
     }
 
-    private Response doDeleteCycle(String id) {
+    private Response doDeleteCycle(String jsonString) {
         try {
+            if (!AuthManager.authenticate(jsonString, 1)) {
+                return ResponseUtils.createResponse(ResponseUtils.FORBIDDEN);
+            }
+
+            Map<String, Object> map = RequestUtils.getMap(jsonString);
+
+            if (map == null) {
+                return ResponseUtils.createResponse(ResponseUtils.BAD_REQUEST);
+            }
+
+            if (!map.containsKey(Cycle.ID_KEY)) {
+                return ResponseUtils.createResponse(ResponseUtils.BAD_REQUEST);
+            }
+
+            String id = (String) map.get(Cycle.ID_KEY);
+
             SQLControl.Cycles.delete(id);
 
-            return ResponseManager.createResponse(200, true);
+            return ResponseUtils.createResponse(ResponseUtils.OK, true);
         } catch (SQLException ex) {
             Logger.getLogger(CyclesResource.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return ResponseManager.createResponse(200, false);
+        return ResponseUtils.createResponse(ResponseUtils.INTERNAL_SERVER_ERROR);
     }
 
 }

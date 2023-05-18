@@ -28,6 +28,7 @@ import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.kaw.dev.scheduler.persistence.sql.SQLControl;
+import net.kaw.dev.scheduler.rest.resources.utils.ResponseUtils;
 
 @Path("careers")
 public class CareersResource {
@@ -45,12 +46,12 @@ public class CareersResource {
         try {
             SQLControl.Careers.delete(id);
 
-            return ResponseManager.createResponse(200, true);
+            return ResponseUtils.createResponse(200, true);
         } catch (SQLException ex) {
             Logger.getLogger(CareersResource.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return ResponseManager.createResponse(200, false);
+        return ResponseUtils.createResponse(200, false);
     }
 
 }

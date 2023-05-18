@@ -18,28 +18,40 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package net.kaw.dev.scheduler.rest.configuration;
+package net.kaw.dev.scheduler.rest.resources.utils;
 
-import jakarta.ws.rs.ApplicationPath;
-import jakarta.ws.rs.core.Application;
-import java.util.HashSet;
-import java.util.Set;
+import jakarta.ws.rs.core.Response;
 
-@ApplicationPath("rest")
-public class ApplicationConfig extends Application {
+public class ResponseUtils {
 
-    @Override
-    public Set<Class<?>> getClasses() {
-        Set<Class<?>> resources = new HashSet<>();
-        addRestResourceClasses(resources);
-        return resources;
+    public static final int OK = 200;
+
+    public static final int BAD_REQUEST = 400;
+
+    public static final int UNAUTHORIZED = 401;
+
+    public static final int FORBIDDEN = 403;
+
+    public static final int NOT_FOUND = 404;
+
+    public static final int RATE_LIMITED = 429;
+
+    public static final int INTERNAL_SERVER_ERROR = 500;
+
+    public static Response createResponse(int status, Object o) {
+        return Response
+                .status(status)
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Credentials", "true")
+                .header("Access-Control-Allow-Headers",
+                        "origin, content-type, accept, authorization")
+                .header("Access-Control-Allow-Methods",
+                        "GET, POST, PUT, DELETE, OPTIONS, HEAD")
+                .entity(o)
+                .build();
     }
 
-    private void addRestResourceClasses(Set<Class<?>> resources) {
-        resources.add(net.kaw.dev.scheduler.rest.resources.CareersResource.class);
-        resources.add(net.kaw.dev.scheduler.rest.resources.CyclesResource.class);
-        resources.add(net.kaw.dev.scheduler.rest.resources.TeachersResource.class);
-        resources.add(net.kaw.dev.scheduler.rest.resources.AuthInstancesResource.class);
+    public static Response createResponse(int status) {
+        return createResponse(status, "");
     }
-
 }
